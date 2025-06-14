@@ -1,0 +1,75 @@
+# Example terraform.tfvars file for Palo Alto VM-Series Centralized Inspection Architecture
+# Copy this file to terraform.tfvars and update the values according to your environment
+
+#######################
+# General AWS Settings
+#######################
+
+# AWS region where resources will be deployed
+aws_region = "us-west-2"
+
+# Availability zones to use (must be at least 2 within the selected region)
+availability_zones = ["us-west-2a", "us-west-2b"]
+
+# EC2 key pair name for VM-Series firewall instances
+# This key pair must already exist in your AWS account
+key_name = "your-key-pair-name"
+
+########################
+# VM-Series Settings
+########################
+
+# Palo Alto VM-Series AMI ID for your region
+# Find the correct AMI ID for your region and license type at:
+# https://docs.paloaltonetworks.com/vm-series/10-1/vm-series-deployment/deploy-vm-series-on-aws/launch-the-vm-series-firewall-in-aws
+fw_ami_id = "ami-08c466959792f4c4b"
+
+# VM-Series instance type
+# Recommended: m5.xlarge or larger for production environments
+fw_instance_type = "m5.large"
+
+# Number of VM-Series firewalls to deploy (minimum 2 for high availability)
+fw_count = 2
+
+# S3 bucket name for VM-Series bootstrap configuration
+# This must be globally unique across all of AWS
+bootstrap_bucket = "palo-bootstrap-UNIQUE-NAME"
+
+# Bootstrap file path within the bucket
+bootstrap_key_prefix = "/"
+
+########################
+# Network Settings
+########################
+
+# VPC CIDR blocks
+security_vpc_cidr = "10.11.0.0/16"
+spoke_a_vpc_cidr  = "10.12.0.0/16"
+spoke_b_vpc_cidr  = "10.13.0.0/16"
+web_vpc_cidr      = "10.14.0.0/16"
+
+# Subnet CIDRs for Security VPC
+# These can be left as defaults unless they conflict with your existing networks
+mgmt_subnet_cidrs     = ["10.11.0.0/24", "10.11.1.0/24"]
+private_subnet_cidrs  = ["10.11.2.0/24", "10.11.3.0/24"]
+public_subnet_cidrs   = ["10.11.4.0/24", "10.11.5.0/24"]
+tgw_subnet_cidrs      = ["10.11.6.0/24", "10.11.7.0/24"]
+gwlb_subnet_cidrs     = ["10.11.8.0/24", "10.11.9.0/24"]
+gwlbe_subnet_cidrs    = ["10.11.10.0/24", "10.11.11.0/24"]
+
+# Subnet CIDRs for Spoke VPCs
+# These can be left as defaults unless they conflict with your existing networks
+spoke_a_subnet_cidrs   = ["10.12.0.0/24", "10.12.1.0/24"]
+spoke_b_subnet_cidrs   = ["10.13.0.0/24", "10.13.1.0/24"]
+web_subnet_cidrs      = ["10.14.0.0/24", "10.14.1.0/24"]
+
+########################
+# Tags
+########################
+
+# Tags to apply to all resources
+tags = {
+  Environment = "demo"
+  Project     = "palo-alto-centralized-inspection"
+  Terraform   = "true"
+}
