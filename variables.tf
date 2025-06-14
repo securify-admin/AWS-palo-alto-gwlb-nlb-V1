@@ -120,7 +120,7 @@ variable "key_name" {
 variable "bootstrap_bucket" {
   description = "S3 bucket for Palo Alto bootstrap configuration - will be created if it doesn't exist"
   type        = string
-  default     = "securify-palo-bootstrap" # This should be overridden with a globally unique bucket name
+  default     = "palo-bootstrap-UNIQUE-ID" # This should be overridden with a globally unique bucket name
 }
 
 variable "bootstrap_path" {
