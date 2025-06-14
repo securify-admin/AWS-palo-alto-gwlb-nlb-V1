@@ -255,3 +255,4 @@ terraform destroy -auto-approve
 - Interface swap is enabled to align AWS network interfaces with Palo Alto interface expectations
 - The architecture follows a true centralized inspection model with all traffic inspected by firewalls in the Security VPC
 - The configuration uses BYOL (Bring Your Own License) VM-Series images
+# Updated documentation
