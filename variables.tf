@@ -128,3 +128,10 @@ variable "bootstrap_path" {
   type        = string
   default     = "/"
 }
+
+# Routing control variables
+variable "route_web_vpc_through_tgw" {
+  description = "If true, route Web VPC traffic through Transit Gateway for inspection. If false, use Internet Gateway for direct internet access."
+  type        = bool
+  default     = false  # Start with IGW for initial setup
+}

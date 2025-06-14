@@ -103,12 +103,12 @@ module "spoke_vpc_b" {
   subnet_cidrs = var.spoke_b_app_subnet_cidrs
   subnet_names = ["app-subnet-a", "app-subnet-b"]
 
-  # Make app subnets public for test Windows instances
-  public_subnet_indices  = [0, 1]
-  private_subnet_indices = []
-  create_private_rt      = false
+  # Make app subnets private (no IGW access)
+  public_subnet_indices  = []
+  private_subnet_indices = [0, 1]
+  create_private_rt      = true
 
-  # No custom route tables needed since app subnets are public and use public route table
+  # No custom route tables needed
   custom_route_tables = {}
 
   # No custom route table associations needed
@@ -251,7 +251,7 @@ resource "aws_route" "spoke_a_all_vpc_route" {
 
 # Route from Spoke B to Spoke A
 resource "aws_route" "spoke_b_to_spoke_a_route" {
-  route_table_id         = module.spoke_vpc_b.public_route_table_id
+  route_table_id         = module.spoke_vpc_b.private_route_table_id
   destination_cidr_block = "10.12.0.0/16" # Spoke A's CIDR
   transit_gateway_id     = module.tgw.tgw_id
   
@@ -260,8 +260,17 @@ resource "aws_route" "spoke_b_to_spoke_a_route" {
 
 # Route for Security VPC traffic from Spoke B
 resource "aws_route" "spoke_b_to_security_vpc_route" {
-  route_table_id         = module.spoke_vpc_b.public_route_table_id
+  route_table_id         = module.spoke_vpc_b.private_route_table_id
   destination_cidr_block = "10.11.0.0/16" # Security VPC's CIDR
+  transit_gateway_id     = module.tgw.tgw_id
+  
+  depends_on = [module.tgw]
+}
+
+# Default route from Spoke B to Transit Gateway for all traffic
+resource "aws_route" "spoke_b_default_route" {
+  route_table_id         = module.spoke_vpc_b.private_route_table_id
+  destination_cidr_block = "0.0.0.0/0"
   transit_gateway_id     = module.tgw.tgw_id
   
   depends_on = [module.tgw]
@@ -345,6 +354,23 @@ resource "aws_route" "security_public_dataplane_b_internet_route" {
   route_table_id         = module.security_vpc.public_route_table_id
   destination_cidr_block = "0.0.0.0/0"
   gateway_id             = module.security_vpc.internet_gateway_id
+}
+
+# Routes for GWLBE subnets to send return traffic back to spoke VPCs via Transit Gateway
+resource "aws_route" "gwlbe_a_to_tgw_route" {
+  route_table_id         = module.security_vpc.custom_route_table_ids["gwlbe-dedicated-a"]
+  destination_cidr_block = "10.0.0.0/8" # Covers all VPCs in 10.x.x.x range
+  transit_gateway_id     = module.tgw.tgw_id
+  
+  depends_on = [module.tgw]
+}
+
+resource "aws_route" "gwlbe_b_to_tgw_route" {
+  route_table_id         = module.security_vpc.custom_route_table_ids["gwlbe-dedicated-b"]
+  destination_cidr_block = "10.0.0.0/8" # Covers all VPCs in 10.x.x.x range
+  transit_gateway_id     = module.tgw.tgw_id
+  
+  depends_on = [module.tgw]
 }
 
 # Note: The routes in the TGW attachment subnet route table are now properly managed by the
@@ -535,34 +561,40 @@ module "web_instances" {
 
 # Internal NLB removed - using only the internal ALB for web server load balancing
 
-# TEMPORARY: Routes for Web VPC private subnets to route all traffic directly to Internet Gateway
-# This allows initial web server deployment to access the internet for package installation
-# After deployment, these should be replaced with routes through the Transit Gateway
+# Routes for Web VPC private subnets - controlled by var.route_web_vpc_through_tgw
+# When var.route_web_vpc_through_tgw = false: Route directly to Internet Gateway for package installation
+# When var.route_web_vpc_through_tgw = true: Route through Transit Gateway for inspection
+
+# Internet Gateway routes - created when route_web_vpc_through_tgw = false
 resource "aws_route" "web_vpc_private_a_internet_route" {
+  count                  = var.route_web_vpc_through_tgw ? 0 : 1
   route_table_id         = module.web_vpc.custom_route_table_ids["private-a"]
   destination_cidr_block = "0.0.0.0/0"
   gateway_id             = module.web_vpc.internet_gateway_id
 }
 
 resource "aws_route" "web_vpc_private_b_internet_route" {
+  count                  = var.route_web_vpc_through_tgw ? 0 : 1
   route_table_id         = module.web_vpc.custom_route_table_ids["private-b"]
   destination_cidr_block = "0.0.0.0/0"
   gateway_id             = module.web_vpc.internet_gateway_id
 }
 
-# Commented out Transit Gateway routes - uncomment these and remove the IGW routes after deployment
-# resource "aws_route" "web_vpc_private_a_tgw_route" {
-#   route_table_id         = module.web_vpc.custom_route_table_ids["private-a"]
-#   destination_cidr_block = "0.0.0.0/0"
-#   transit_gateway_id     = module.tgw.tgw_id
-#   
-#   depends_on = [module.tgw]
-# }
-# 
-# resource "aws_route" "web_vpc_private_b_tgw_route" {
-#   route_table_id         = module.web_vpc.custom_route_table_ids["private-b"]
-#   destination_cidr_block = "0.0.0.0/0"
-#   transit_gateway_id     = module.tgw.tgw_id
-#   
-#   depends_on = [module.tgw]
-# }
+# Transit Gateway routes - created when route_web_vpc_through_tgw = true
+resource "aws_route" "web_vpc_private_a_tgw_route" {
+  count                  = var.route_web_vpc_through_tgw ? 1 : 0
+  route_table_id         = module.web_vpc.custom_route_table_ids["private-a"]
+  destination_cidr_block = "0.0.0.0/0"
+  transit_gateway_id     = module.tgw.tgw_id
+  
+  depends_on = [module.tgw]
+}
+
+resource "aws_route" "web_vpc_private_b_tgw_route" {
+  count                  = var.route_web_vpc_through_tgw ? 1 : 0
+  route_table_id         = module.web_vpc.custom_route_table_ids["private-b"]
+  destination_cidr_block = "0.0.0.0/0"
+  transit_gateway_id     = module.tgw.tgw_id
+  
+  depends_on = [module.tgw]
+}

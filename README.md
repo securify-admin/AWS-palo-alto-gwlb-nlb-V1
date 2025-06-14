@@ -1,12 +1,8 @@
 # AWS Palo Alto VM-Series Centralized Inspection Architecture on AWS
 
-This Terraform project deploys a Palo Alto VM-Series centralized inspection architecture on AWS, featuring a security VPC with VM-Series firewalls, Gateway Load Balancer (GWLB), and Network Load Balancer (NLB), connected to spoke VPCs via Transit Gateway.
+This Terraform project deploys a Palo Alto VM-Series centralized inspection architecture on AWS, featuring a security VPC with VM-Series firewalls, Gateway Load Balancer (GWLB), and Application Load Balancer (ALB), connected to spoke VPCs via Transit Gateway.
 
 ## Architecture Overview
-
-![Architecture Diagram](architecture_diagram.png)
-
-*Note: Replace this with your actual architecture diagram. See architecture_diagram.md for details.*
 
 This architecture provides:
 
@@ -14,7 +10,8 @@ This architecture provides:
 - **Scalable Firewall Deployment**: Gateway Load Balancer enables easy scaling of firewall capacity
 - **High Availability**: Deployment across multiple availability zones ensures resilience
 - **Simplified Network Architecture**: Transit Gateway provides a hub-and-spoke model for inter-VPC communication
-- **Flexible Traffic Patterns**: Supports both inbound traffic (via NLB) and outbound/east-west traffic (via GWLB)
+- **Flexible Traffic Patterns**: Supports both inbound traffic (via ALB) and outbound/east-west traffic (via GWLB)
+- **Variable-Based Routing Control**: Toggle between direct internet access and Transit Gateway routing for Web VPC
 
 ## Modular Design
 
@@ -35,12 +32,72 @@ This project uses a modular design approach with the following modules:
   - GWLB Endpoints in dedicated subnets
   - Target group registration for VM-Series firewalls
 
-- **nlb**: Creates Network Load Balancer for inbound traffic
-  - Deployed in public dataplane subnets
-  - Listeners for HTTPS, SSH, and RDP
-  - Target group registration for VM-Series firewall public interfaces
+- **alb**: Creates Application Load Balancer for web traffic
+  - Deployed in private subnets
+  - Listeners for HTTP/HTTPS
+  - Target group registration for web servers
 
 - **tgw**: Configures Transit Gateway and attachments
+
+## Enterprise Deployment with Terraform Cloud and GitHub
+
+This project is configured for enterprise-level deployment using Terraform Cloud and GitHub:
+
+### GitHub Integration
+
+1. **Repository**: The code is hosted at [https://github.com/securify-admin/AWS-palo-alto-gwlb-nlb-V1.git](https://github.com/securify-admin/AWS-palo-alto-gwlb-nlb-V1.git)
+
+2. **Workflow**:
+   - Use feature branches for changes
+   - Create pull requests for code reviews
+   - Merge approved changes to main branch
+
+### Terraform Cloud Setup
+
+1. **Configure Workspace**:
+   - Create a new workspace in Terraform Cloud
+   - Connect to the GitHub repository
+   - Set execution mode to "Remote"
+
+2. **Configure Variables**:
+   - Add AWS credentials as sensitive environment variables:
+     - `AWS_ACCESS_KEY_ID`
+     - `AWS_SECRET_ACCESS_KEY`
+   - Add Terraform variables:
+     - `route_web_vpc_through_tgw` (boolean) - Controls Web VPC routing
+     - `key_name` - EC2 key pair name (default: "palo-poc-key-pair")
+
+3. **Update backend.tf**:
+   - Modify the `backend.tf` file with your organization and workspace names
+
+## Variable-Based Routing Control
+
+This project implements a variable-based approach to control Web VPC routing:
+
+- **Initial Deployment** (`route_web_vpc_through_tgw = false`):
+  - Web VPC has direct internet access via Internet Gateway
+  - Web servers can access the internet for package installation
+  - Default routes (0.0.0.0/0) in Web VPC point to Internet Gateway
+
+- **Post-Deployment Configuration** (`route_web_vpc_through_tgw = true`):
+  - All Web VPC traffic routes through Transit Gateway
+  - Traffic is inspected by Palo Alto VM-Series firewalls in Security VPC
+  - More secure configuration for production use
+
+## Deployment Workflow
+
+1. **Initial Setup**:
+   - Push code to GitHub repository
+   - Configure Terraform Cloud workspace
+   - Set `route_web_vpc_through_tgw = false` for initial deployment
+   - Run Terraform apply to deploy infrastructure
+   - Web servers can access internet for package installation
+
+2. **Production Configuration**:
+   - After web servers are fully set up
+   - Change `route_web_vpc_through_tgw` to `true` in Terraform Cloud
+   - Run Terraform apply to update routing
+   - All traffic now routes through Transit Gateway for inspection
   - Central Transit Gateway with route tables
   - Attachments for all VPCs
   - Routes for inter-VPC communication

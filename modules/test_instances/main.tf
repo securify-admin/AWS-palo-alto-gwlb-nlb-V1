@@ -66,8 +66,8 @@ resource "aws_instance" "windows_server" {
   # Get encrypted password using key pair
   key_name = var.key_name
   
-  # Enable public interface
-  associate_public_ip_address = true
+  # Enable public interface only for instances in Spoke VPC A (index 0)
+  associate_public_ip_address = count.index == 0 ? true : false
   
   root_block_device {
     volume_size = 30
