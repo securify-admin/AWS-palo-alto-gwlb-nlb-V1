@@ -238,17 +238,31 @@ resource "aws_s3_object" "bootstrap_xml" {
           <application/>
           <application-group/>
           <zone>
-            <entry name="inspect">
+            <entry name="outbound_int">
               <network>
                 <layer3>
-                  <member>ethernet1/1</member>
+                  <member>ethernet1/1.20</member>
                 </layer3>
               </network>
             </entry>
-            <entry name="outside">
+            <entry name="eastwest_int">
+              <network>
+                <layer3>
+                  <member>ethernet1/1.30</member>
+                </layer3>
+              </network>
+            </entry>
+            <entry name="internet_int">
               <network>
                 <layer3>
                   <member>ethernet1/2</member>
+                </layer3>
+              </network>
+            </entry>
+            <entry name="inspect_int">
+              <network>
+                <layer3>
+                  <member>ethernet1/1</member>
                 </layer3>
               </network>
             </entry>
@@ -257,36 +271,30 @@ resource "aws_s3_object" "bootstrap_xml" {
           <service-group/>
           <schedule/>
           <rulebase>
-            <security>
+            <default-security-rules>
               <rules>
-                <entry name="Allow outbound" uuid="c1e68692-f0f4-4c47-b0fe-9e3a903b86e6">
-                  <to>
-                    <member>outside</member>
-                  </to>
-                  <from>
-                    <member>inspect</member>
-                  </from>
-                  <source>
-                    <member>any</member>
-                  </source>
-                  <destination>
-                    <member>any</member>
-                  </destination>
-                  <service>
-                    <member>application-default</member>
-                  </service>
-                  <application>
-                    <member>any</member>
-                  </application>
+                <entry name="intrazone-default" uuid="70c2e9cb-d89c-41c8-9861-8d0604992808">
                   <action>allow</action>
+                  <log-start>yes</log-start>
                   <log-end>yes</log-end>
                 </entry>
-                <entry name="inspect-traffic" uuid="6403ff18-6e15-41c2-a324-476e3a50c00d">
+                <entry name="interzone-default" uuid="399b3329-da31-49b9-b2d8-aa4c6e1993b3">
+                  <action>deny</action>
+                  <log-start>yes</log-start>
+                  <log-end>yes</log-end>
+                </entry>
+              </rules>
+            </default-security-rules>
+            <security>
+              <rules>
+                <entry name="allow_internet" uuid="2d80f896-cc1c-4430-ae46-0f3278d15c31">
                   <to>
-                    <member>inspect</member>
+                    <member>internet_int</member>
+                    <member>outbound_int</member>
                   </to>
                   <from>
-                    <member>inspect</member>
+                    <member>internet_int</member>
+                    <member>outbound_int</member>
                   </from>
                   <source>
                     <member>any</member>
@@ -304,7 +312,7 @@ resource "aws_s3_object" "bootstrap_xml" {
                     <member>any</member>
                   </application>
                   <service>
-                    <member>application-default</member>
+                    <member>any</member>
                   </service>
                   <source-hip>
                     <member>any</member>
@@ -313,19 +321,26 @@ resource "aws_s3_object" "bootstrap_xml" {
                     <member>any</member>
                   </destination-hip>
                   <action>allow</action>
-                  <log-start>yes</log-start>
+                  <log-start>no</log-start>
                   <log-end>yes</log-end>
                 </entry>
               </rules>
             </security>
             <nat>
               <rules>
-                <entry name="Outbound NAT" uuid="b9e6d336-1e6d-4a3f-a4c9-08cc5b49a604">
+                <entry name="NAT_Internet" uuid="5520762a-b13c-49b8-9290-78ae1ea2b889">
+                  <source-translation>
+                    <dynamic-ip-and-port>
+                      <interface-address>
+                        <interface>ethernet1/2</interface>
+                      </interface-address>
+                    </dynamic-ip-and-port>
+                  </source-translation>
                   <to>
-                    <member>outside</member>
+                    <member>internet_int</member>
                   </to>
                   <from>
-                    <member>inspect</member>
+                    <member>outbound_int</member>
                   </from>
                   <source>
                     <member>any</member>
@@ -334,30 +349,16 @@ resource "aws_s3_object" "bootstrap_xml" {
                     <member>any</member>
                   </destination>
                   <service>any</service>
-                  <source-translation>
-                    <dynamic-ip-and-port>
-                      <interface-address>
-                        <interface>ethernet1/2</interface>
-                      </interface-address>
-                    </dynamic-ip-and-port>
-                  </source-translation>
                 </entry>
               </rules>
             </nat>
-            <default-security-rules>
-              <rules>
-                <entry name="intrazone-default" uuid="b68d0dfb-a4c2-4e46-aa6f-6ee1a382c66f">
-                  <action>allow</action>
-                  <log-start>yes</log-start>
-                  <log-end>yes</log-end>
-                </entry>
-              </rules>
-            </default-security-rules>
           </rulebase>
           <import>
             <network>
               <interface>
                 <member>ethernet1/1</member>
+                <member>ethernet1/1.20</member>
+                <member>ethernet1/1.30</member>
                 <member>ethernet1/2</member>
               </interface>
             </network>
