@@ -181,9 +181,19 @@ resource "aws_iam_instance_profile" "fw_instance_profile" {
 
 # Management interfaces will use auto-assigned public IPs
 
+# Elastic IPs for management interface
+resource "aws_eip" "fw_mgmt_eip" {
+  count = var.az_count
+  domain = "vpc"
+  tags = {
+    Name = "palo-fw-${count.index + 1}-mgmt-eip"
+  }
+}
+
 # Elastic IPs for public dataplane interface
 resource "aws_eip" "fw_public_eip" {
   count = var.az_count
+  domain = "vpc"
   tags = {
     Name = "palo-fw-${count.index + 1}-public-eip"
   }
@@ -225,7 +235,14 @@ resource "aws_network_interface" "fw_public_eni" {
 
 # Management interfaces will use auto-assigned public IPs instead of EIPs
 
-# EIP association for public dataplane interface
+# Associate EIPs with management interfaces
+resource "aws_eip_association" "fw_mgmt_eip_assoc" {
+  count                = var.az_count
+  network_interface_id = aws_network_interface.fw_mgmt_eni[count.index].id
+  allocation_id        = aws_eip.fw_mgmt_eip[count.index].id
+}
+
+# Associate EIPs with public dataplane interfaces
 resource "aws_eip_association" "fw_public_eip_assoc" {
   count                = var.az_count
   network_interface_id = aws_network_interface.fw_public_eni[count.index].id
