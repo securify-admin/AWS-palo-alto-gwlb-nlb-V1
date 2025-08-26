@@ -179,15 +179,7 @@ resource "aws_iam_instance_profile" "fw_instance_profile" {
   role = aws_iam_role.fw_role.name
 }
 
-# Management interfaces will use auto-assigned public IPs
-
-# Elastic IPs for management interface
-resource "aws_eip" "fw_mgmt_eip" {
-  count = var.az_count
-  tags = {
-    Name = "palo-fw-${count.index + 1}-mgmt-eip"
-  }
-}
+# Management interfaces will use auto-assigned public IPs from the subnet
 
 # Elastic IPs for public dataplane interface
 resource "aws_eip" "fw_public_eip" {
@@ -231,14 +223,7 @@ resource "aws_network_interface" "fw_public_eni" {
   }
 }
 
-# Management interfaces will use auto-assigned public IPs instead of EIPs
-
-# Associate EIPs with management interfaces
-resource "aws_eip_association" "fw_mgmt_eip_assoc" {
-  count                = var.az_count
-  network_interface_id = aws_network_interface.fw_mgmt_eni[count.index].id
-  allocation_id        = aws_eip.fw_mgmt_eip[count.index].id
-}
+# Management interfaces will use auto-assigned public IPs from the subnet
 
 # Associate EIPs with public dataplane interfaces
 resource "aws_eip_association" "fw_public_eip_assoc" {
