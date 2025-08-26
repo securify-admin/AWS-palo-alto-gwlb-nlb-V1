@@ -222,14 +222,39 @@ resource "aws_eip_association" "fw_public_eip_assoc" {
   allocation_id        = aws_eip.fw_public_eip[count.index].id
 }
 
+# Create management ENIs with public IPs
+resource "aws_network_interface" "fw_mgmt_eni" {
+  count             = var.az_count
+  subnet_id         = var.mgmt_subnet_ids[count.index]
+  security_groups   = [aws_security_group.fw_mgmt_sg.id]
+  source_dest_check = true
+  
+  tags = {
+    Name = "palo-fw-${count.index + 1}-mgmt-eni"
+  }
+}
+
+# Allocate EIPs for management interfaces
+resource "aws_eip" "fw_mgmt_eip" {
+  count = var.az_count
+  tags = {
+    Name = "palo-fw-${count.index + 1}-mgmt-eip"
+  }
+}
+
+# Associate EIPs with management interfaces
+resource "aws_eip_association" "fw_mgmt_eip_assoc" {
+  count                = var.az_count
+  network_interface_id = aws_network_interface.fw_mgmt_eni[count.index].id
+  allocation_id        = aws_eip.fw_mgmt_eip[count.index].id
+}
+
 # VM-Series firewall instances
 resource "aws_instance" "palo_fw" {
   count         = var.az_count
   ami           = var.ami_id
   instance_type = var.instance_type
   key_name      = var.key_name
-  subnet_id     = var.mgmt_subnet_ids[count.index]
-  associate_public_ip_address = true
 
   iam_instance_profile = aws_iam_instance_profile.fw_instance_profile.name
   user_data = <<EOF
@@ -239,8 +264,13 @@ vmseries-bootstrap-aws-s3region=${data.aws_region.current.name}
 EOF
 
   network_interface {
-    device_index         = 1
+    device_index         = 0
     network_interface_id = aws_network_interface.fw_private_eni[count.index].id
+  }
+
+  network_interface {
+    device_index         = 1
+    network_interface_id = aws_network_interface.fw_mgmt_eni[count.index].id
   }
 
   network_interface {

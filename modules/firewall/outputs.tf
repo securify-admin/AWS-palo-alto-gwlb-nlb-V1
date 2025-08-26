@@ -4,8 +4,8 @@ output "firewall_instance_ids" {
 }
 
 output "firewall_mgmt_public_ips" {
-  description = "Public IPs of the firewall management interfaces - dynamically assigned"
-  value       = aws_instance.palo_fw[*].public_ip
+  description = "Public IPs of the firewall management interfaces"
+  value       = aws_eip.fw_mgmt_eip[*].public_ip
 }
 
 output "firewall_public_ips" {
