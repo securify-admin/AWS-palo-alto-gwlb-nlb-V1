@@ -18,8 +18,8 @@ module "security_vpc" {
 
   subnet_cidrs = concat(
     var.security_vpc_mgmt_subnet_cidrs,
-    var.security_vpc_gwlb_subnet_cidrs,
     var.security_vpc_public_dataplane_subnet_cidrs,
+    var.security_vpc_gwlb_subnet_cidrs,
     var.security_vpc_tgw_attachment_subnet_cidrs,
     var.security_vpc_gwlb_dedicated_subnet_cidrs,
     var.security_vpc_gwlbe_dedicated_subnet_cidrs
