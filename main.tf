@@ -261,7 +261,7 @@ resource "aws_route" "spoke_b_to_spoke_a_route" {
 # Route for Security VPC traffic from Spoke B
 resource "aws_route" "spoke_b_to_security_vpc_route" {
   route_table_id         = module.spoke_vpc_b.private_route_table_id
-  destination_cidr_block = "10.11.0.0/16" # Security VPC's CIDR
+  destination_cidr_block = "10.48.76.0/24" # Security VPC's CIDR
   transit_gateway_id     = module.tgw.tgw_id
   
   depends_on = [module.tgw]

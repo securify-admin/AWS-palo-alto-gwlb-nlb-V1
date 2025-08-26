@@ -14,7 +14,7 @@ variable "availability_zones" {
 variable "security_vpc_cidr" {
   description = "CIDR block for Security VPC"
   type        = string
-  default     = "10.11.0.0/16"
+  default     = "10.48.76.0/24"
 }
 
 variable "spoke_a_vpc_cidr" {
@@ -39,37 +39,37 @@ variable "spoke_vpc_cidrs" {
 variable "security_vpc_mgmt_subnet_cidrs" {
   description = "CIDR blocks for management subnets in Security VPC"
   type        = list(string)
-  default     = ["10.11.0.0/24", "10.11.1.0/24"]
+  default     = ["10.48.76.0/27", "10.48.76.32/27"]
 }
 
 variable "security_vpc_gwlb_subnet_cidrs" {
   description = "CIDR blocks for private dataplane subnets in Security VPC (used for firewall private ENIs)"
   type        = list(string)
-  default     = ["10.11.2.0/24", "10.11.3.0/24"]
+  default     = ["10.48.76.128/28", "10.48.76.144/28"]
 }
 
 variable "security_vpc_public_dataplane_subnet_cidrs" {
   description = "CIDR blocks for public dataplane subnets in Security VPC"
   type        = list(string)
-  default     = ["10.11.4.0/24", "10.11.5.0/24"]
+  default     = ["10.48.76.64/27", "10.48.76.96/27"]
 }
 
 variable "security_vpc_tgw_attachment_subnet_cidrs" {
   description = "CIDR blocks for TGW attachment subnets in Security VPC"
   type        = list(string)
-  default     = ["10.11.6.0/24", "10.11.7.0/24"]
+  default     = ["10.48.76.160/28", "10.48.76.176/28"]
 }
 
 variable "security_vpc_gwlb_dedicated_subnet_cidrs" {
   description = "CIDR blocks for dedicated GWLB subnets in Security VPC"
   type        = list(string)
-  default     = ["10.11.8.0/24", "10.11.9.0/24"]
+  default     = ["10.48.76.192/28", "10.48.76.208/28"]
 }
 
 variable "security_vpc_gwlbe_dedicated_subnet_cidrs" {
   description = "CIDR blocks for dedicated GWLB endpoint subnets in Security VPC"
   type        = list(string)
-  default     = ["10.11.10.0/24", "10.11.11.0/24"]
+  default     = ["10.48.76.224/28", "10.48.76.240/28"]
 }
 
 # Subnet CIDRs for Spoke VPCs
