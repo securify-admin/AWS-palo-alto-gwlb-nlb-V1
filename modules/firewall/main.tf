@@ -184,7 +184,6 @@ resource "aws_iam_instance_profile" "fw_instance_profile" {
 # Elastic IPs for management interface
 resource "aws_eip" "fw_mgmt_eip" {
   count = var.az_count
-  domain = "vpc"
   tags = {
     Name = "palo-fw-${count.index + 1}-mgmt-eip"
   }
@@ -193,7 +192,6 @@ resource "aws_eip" "fw_mgmt_eip" {
 # Elastic IPs for public dataplane interface
 resource "aws_eip" "fw_public_eip" {
   count = var.az_count
-  domain = "vpc"
   tags = {
     Name = "palo-fw-${count.index + 1}-public-eip"
   }
