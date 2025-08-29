@@ -19,25 +19,27 @@ module "security_vpc" {
   subnet_cidrs = concat(
     var.security_vpc_mgmt_subnet_cidrs,
     var.security_vpc_gwlb_subnet_cidrs,
-    var.security_vpc_public_dataplane_subnet_cidrs,
+    var.security_vpc_firewall_public_subnet_cidrs,
     var.security_vpc_tgw_attachment_subnet_cidrs,
     var.security_vpc_gwlb_dedicated_subnet_cidrs,
-    var.security_vpc_gwlbe_dedicated_subnet_cidrs
+    var.security_vpc_gwlbe_dedicated_subnet_cidrs,
+    var.security_vpc_lb_subnet_cidrs
   )
 
   subnet_names = [
     "mgmt-subnet-a", "mgmt-subnet-b",
     "private-dataplane-subnet-a", "private-dataplane-subnet-b",
-    "public-dataplane-subnet-a", "public-dataplane-subnet-b",
+    "firewall-public-subnet-a", "firewall-public-subnet-b",
     "tgw-attachment-subnet-a", "tgw-attachment-subnet-b",
     "gwlb-dedicated-subnet-a", "gwlb-dedicated-subnet-b",
-    "gwlbe-dedicated-subnet-a", "gwlbe-dedicated-subnet-b"
+    "gwlbe-dedicated-subnet-a", "gwlbe-dedicated-subnet-b",
+    "lb-subnet-a", "lb-subnet-b"
   ]
 
-  # Management subnets (0, 1) and public dataplane subnets (4, 5) are public
-  public_subnet_indices = [0, 1, 4, 5]
+  # Management subnets (0, 1), firewall public subnets (4, 5), and load balancer subnets (12, 13) are public
+  public_subnet_indices = [0, 1, 4, 5, 12, 13]
 
-  # Private subnets include GWLB, TGW attachment, and dedicated GWLB/GWLBE subnets
+  # Private subnets include private dataplane, TGW attachment, and dedicated GWLB/GWLBE subnets
   private_subnet_indices = [2, 3, 6, 7, 8, 9, 10, 11]
 
   # Don't create the private route table since all private subnets use custom route tables
@@ -196,8 +198,8 @@ module "firewall" {
   ]
 
   public_subnet_ids = [
-    module.security_vpc.subnet_ids[4], # public-dataplane-subnet-a
-    module.security_vpc.subnet_ids[5]  # public-dataplane-subnet-b
+    module.security_vpc.subnet_ids[4], # firewall-public-subnet-a
+    module.security_vpc.subnet_ids[5]  # firewall-public-subnet-b
   ]
 
   ami_id           = var.palo_ami_id
@@ -419,8 +421,8 @@ module "public_alb" {
   internal = false
   vpc_id = module.security_vpc.vpc_id
   subnets = [
-    module.security_vpc.subnet_ids[4], # public-dataplane-subnet-a
-    module.security_vpc.subnet_ids[5]  # public-dataplane-subnet-b
+    module.security_vpc.subnet_ids[12], # lb-subnet-a
+    module.security_vpc.subnet_ids[13]  # lb-subnet-b
   ]
   security_groups = [aws_security_group.public_alb_sg.id]
   http_listener_enabled = true
@@ -459,8 +461,8 @@ module "nlb" {
   nlb_name = "public-inbound-nlb"
   vpc_id  = module.security_vpc.vpc_id
   public_subnet_ids = [
-    module.security_vpc.subnet_ids[4], # public-dataplane-subnet-a
-    module.security_vpc.subnet_ids[5]  # public-dataplane-subnet-b
+    module.security_vpc.subnet_ids[12], # lb-subnet-a
+    module.security_vpc.subnet_ids[13]  # lb-subnet-b
   ]
   firewall_public_ips = module.firewall.fw_public_eni_private_ips
 }
